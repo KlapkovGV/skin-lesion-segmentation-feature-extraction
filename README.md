@@ -16,3 +16,41 @@ I applied a fixed 18% crop to the edges of each image. This step was necessary t
 For contrast enhancement, I implemented the Contrast Stretching method. This technique effectively expands the dynamic range of pixel intensities, making the dark lesion more distinct against the lighter healthy skin. Contrast Stretching provides a more natural result that highlights the lesion's boundaries without over-amplifying background noise. 
 
 As the final pre-processing step, I applied a Median Blur with a kernel size of 5. This filter is superior for medical skin images because it effectively removes small artifacts, such as fine hairs and salt-and-pepper noise, while preserving the sharp edges of the lesion. This ensures that boundaries remain clear for accurate shape feature extraction in later steps.
+
+## Step 3: Thresholding (Segmentation)
+
+Image segmentation is the process of partitioning a digital image into multiple segments (set of pixels). The goal of segmentation is to simplify the representation of an image into something that is more meaningful and easier to analyze. 
+
+In this project, segmentation is used to locate the Region of Interest, or the skin lesion, and separate it from the background (healthy skin). Successful segmentation is the most critical step because all subsequent feature extractions depend on the accuracy of the lesion's boundaries.
+
+Thresholding is the simplest and most common method of image segmentation. It is a non-linear operation that converts a grayscale image into a binary image (an image with only two colors: black and white). The process works by choosing a specific intensity value called a threshold (T):
+- pixels with intensity values above T are assigned to one class;
+- pixels with intensity values below T are assigned to another class.
+
+I applied three different thresholding methods to separate the lesion from the healthy skin. I will compare their threshold values, visualize the results on the selected images, and justify why a specific method was chosen as the most effective.
+
+Since skin lesions are typically **darker** than healthy skin, I applied **inverted binary thresholding** (`THRESH_BINARY_INV`). In the resulting masks, the lesion pixels are white (255) and the background (healthy skin) is black (0).
+
+Before implementing thresholding methods, I researched the OpenCV and Scikit-Image libraries. In the Global thresholding (or simple thresholding), the same threshold value is applied to every pixel. I used the `cv2.threshold` function with `cv2.THRESH_BINARY_INV` flag. In this mode, if a pixel value is smaller than or equal to the threshold, it is set to the maximum value (255), otherwise, it is set to 0. `_, thresh_global = cv2.threshold(img, 140, 255, cv2.THRESH_BINARY_INV)` is my code.
+- the first argument is the source grayscale image;
+- the second argument is the threshold value (140), used to classify the pixels;
+- the third argument is the maximum value (255) assigned to pixels that satisfy the condition;
+- the final argument is the thresholding type, which in my case is inverted binary.
+
+Otsu's method is an automatic thresholding algorithm that calculates the optimal threshold by **minimizing the intra-class variance**. It treats the image histogram as a bimodal distribution and finds the threshold that maximizes the spread between the two peaks. This makes it highly effective for images where the contrast between the lesion and skin varies. My implementation is `val = threshold_otsu(img)` followed by img < val.
+
+Li's thresholding is based on the **Minimum Cross-Entropy** criterion proposed by Li and Lee in 1993. The algorithm finds a threshold that minimizes the cross-entropy between the original image and the resulting binary mask. It is particularly robust for medical images where the foreground (lesion) might be much smaller than the background. My implementation is `li_val = threshold_li(img)`. 
+
+*Cross-entropy is a measure from information theory that quantifies the difference between two distributions. The algorithm finds a threshold that minimizes the discrepancy between the original grayscale image and the resulting binary mask. By minimizing this cross-entropy, the method ensures that the segmentation regions preserve the information and average intensities of the original image as accurately as possible.*
+
+<img width="1218" height="478" alt="1" src="https://github.com/user-attachments/assets/c150696a-759e-4980-98d8-238262457044" />
+
+To choose the best value for Global Thresholding, I analyzed the histograms of the pre-processed images. It is important to understand the following:
+- The left part of the histogram (low intensity values) represents the dark pixels, which corresponds to the lesion;
+- The right part of the histogram (high intensity values) represents the light pixels, which corresponds to the healthy skin.
+
+The goal of thresholding is to find the minimum point between these two peaks to separate the lesion from the skin effectively. For the Global Thresholding method, I chose the value 140. I found that 140 is the optimal average of Otsu because it consistently falls into the minimum point of the histogram. 
+
+<img width="1789" height="1673" alt="2" src="https://github.com/user-attachments/assets/759fdc5e-fe62-4ff3-8b74-2cf9c0cbf66d" />
+
+For my project, I chose **Otsu Thresholding** because it provides the best balance between reducing background noise and preserving the full Region of Interest.
