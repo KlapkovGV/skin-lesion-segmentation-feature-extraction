@@ -1,1 +1,1 @@
-segmentation_pipeline.ipynb
+skin lesion segmentation feature extraction.ipynb
